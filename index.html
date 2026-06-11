@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SOS Calculator 改良版</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:sans-serif;background:#f5f7fa;padding:15px}
+.container{max-width:520px;margin:auto;background:#fff;border-radius:15px;padding:20px;box-shadow:0 4px 15px rgba(0,0,0,0.15)}
+h1{text-align:center;margin-bottom:20px}
+.input-group{margin-bottom:15px}
+label{display:block;margin-bottom:5px;font-weight:bold}
+input{width:100%;padding:12px;font-size:18px;border:1px solid #ccc;border-radius:8px}
+button{width:100%;padding:15px;font-size:20px;border:none;border-radius:10px;background:#007bff;color:white;cursor:pointer}
+button:active{transform:scale(0.98)}
+.result{margin-top:20px;background:#eef5ff;padding:15px;border-radius:10px;line-height:1.8;word-break:break-all}
+.mainP{margin-top:10px;font-size:34px;font-weight:bold;text-align:center;color:#007bff}
+.mainR{margin-top:10px;font-size:24px;font-weight:bold;text-align:center;color:#d9534f}
+.eq{margin-top:15px;padding:12px;background:#fff;border-radius:8px;font-size:14px;line-height:1.6}
+#graph{width:100%;height:320px;border:1px solid #ccc;border-radius:10px;margin-top:20px;background:#fff}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>SOS Calculator 改良版</h1>
+
+<div class="input-group"><label>B</label><input type="number" id="B" step="any"></div>
+<div class="input-group"><label>S</label><input type="number" id="S" step="any"></div>
+<div class="input-group"><label>O1</label><input type="number" id="O1" step="any"></div>
+<div class="input-group"><label>R 手入力</label><input type="number" id="R" step="any"></div>
+<div class="input-group"><label>K</label><input type="number" id="K" step="any"></div>
+<div class="input-group"><label>T</label><input type="number" id="T" step="any"></div>
+
+<button onclick="calculate()">START</button>
+
+<div class="result" id="result">計算結果がここに表示されます</div>
+<canvas id="graph"></canvas>
+</div>
+
+<script>
+function calculate(){
+  let B=parseFloat(document.getElementById("B").value);
+  let S=parseFloat(document.getElementById("S").value);
+  let O1=parseFloat(document.getElementById("O1").value);
+  let R=parseFloat(document.getElementById("R").value);
+  let K=parseFloat(document.getElementById("K").value);
+  let T=parseFloat(document.getElementById("T").value);
+
+  if([B,S,O1,R,K,T].some(v=>isNaN(v))){alert("全て入力してください");return}
+  if(K<=0){alert("Kは0より大きい値を入力してください");return}
+  if(T===0){alert("Tは0にできません");return}
+
+  let T1=(B-S)/O1;
+  let O2=B-S-O1;
+  if(O2===0){alert("O2が0になるため計算できません");return}
+  let T2=(B-S)/O2;
+  if(T1<=0||T2<=0){alert("log計算のためT1とT2は正数である必要があります");return}
+
+  let X1=Math.log(T2/T1);
+  let X2=Math.log(T1/T2);
+  let r=-Math.log(K)/T;
+
+  // 指定式
+  let S1 = S / (1 + X1);
+  let S2 = S * (1 + X2);
+  
+  let denominator = S1 - S2 * K;
+  let P = Math.abs(denominator)<1e-12 ? Infinity : (O1 - R * S2 * K) / denominator;
+  
+  let oneMinusP = 1 - P;
+  let S3 = oneMinusP===0 ? Infinity : S1 * oneMinusP;
+  let S4 = S2 / oneMinusP;
+
+  document.getElementById("result").innerHTML=`
+    <div class="mainP">P = ${Number.isFinite(P)?P.toFixed(6):"∞"}</div>
+    <div class="mainR">r = ${r.toFixed(6)}</div>
+    <div class="eq">
+    <b>【中間計算】</b><br>
+    O2 = B-S-O1 = ${O2.toFixed(6)}<br>
+    T1 = (B-S)/O1 = ${T1.toFixed(6)}<br>
+    T2 = (B-S)/O2 = ${T2.toFixed(6)}<br>
+    X1 = log(T2/T1) = ${X1.toFixed(6)}<br>
+    X2 = log(T1/T2) = ${X2.toFixed(6)}<br><br>
+    <b>【計算式】</b><br>
+    S1 = S / (1+X1) = ${S.toFixed(6)} / (1+${X1.toFixed(6)}) = ${Number.isFinite(S1)?S1.toFixed(6):"∞"}<br>
+    S2 = S * (1+X2) = ${S.toFixed(6)} * (1+${X2.toFixed(6)}) = ${Number.isFinite(S2)?S2.toFixed(6):"∞"}<br>
+    P = [O1 - R×S2×K] / [S1 - S2×K]<br>
+      = [${O1.toFixed(6)} - ${R.toFixed(6)}×${Number.isFinite(S2)?S2.toFixed(6):"∞"}×${K}] / [${Number.isFinite(S1)?S1.toFixed(6):"∞"} - ${Number.isFinite(S2)?S2.toFixed(6):"∞"}×${K}]<br>
+      = ${Number.isFinite(P)?P.toFixed(6):"∞"}<br><br>
+    <b>【変換後データ】</b><br>
+    1-P = ${Number.isFinite(oneMinusP)?oneMinusP.toFixed(6):"∞"}<br>
+    S3 = S1×(1-P) = ${Number.isFinite(S3)?S3.toFixed(6):"∞"}<br>
+    S4 = S2 / (1-P) = ${Number.isFinite(S4)?S4.toFixed(6):"∞"}
+    </div>
+  `;
+  drawGraph(S1,S2,S3,S4);
+}
+
+function drawGraph(S1,S2,S3,S4){
+  const canvas=document.getElementById("graph");
+  const ctx=canvas.getContext("2d");
+  canvas.width=canvas.offsetWidth;
+  canvas.height=canvas.offsetHeight;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  
+  let pad=40;
+  let maxX=Math.max(Math.abs(S3),Math.abs(S4),1)*1.2;
+  let maxY=Math.max(Math.abs(S1),Math.abs(S2),1)*1.2;
+  let scaleX=(canvas.width-pad*2)/maxX;
+  let scaleY=(canvas.height-pad*2)/maxY;
+  let ox=pad;
+  let oy=canvas.height-pad;
+
+  // 軸
+  ctx.strokeStyle="#ccc";
+  ctx.lineWidth=1;
+  ctx.beginPath();
+  ctx.moveTo(ox,oy);ctx.lineTo(canvas.width-pad,oy);
+  ctx.moveTo(ox,oy);ctx.lineTo(ox,pad);
+  ctx.stroke();
+
+  ctx.font="10px sans-serif";
+  ctx.fillStyle="#666";
+  ctx.fillText("0",ox-8,oy+12);
+
+  // (0,S1) → (S3,0) 青線
+  let x1=ox+ S3*scaleX;
+  let y1=oy - S1*scaleY;
+  ctx.strokeStyle="#007bff";
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.moveTo(ox, y1);
+  ctx.lineTo(x1, oy);
+  ctx.stroke();
+
+  // (0,S2) → (S4,0) 赤線
+  let x2=ox+ S4*scaleX;
+  let y2=oy - S2*scaleY;
+  ctx.strokeStyle="#d9534f";
+  ctx.beginPath();
+  ctx.moveTo(ox, y2);
+  ctx.lineTo(x2, oy);
+  ctx.stroke();
+
+  // 点とラベル
+  ctx.fillStyle="#007bff";
+  ctx.beginPath();ctx.arc(ox,y1,4,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(x1,oy,4,0,Math.PI*2);ctx.fill();
+  ctx.fillText(`S1`,ox-25,y1);
+  ctx.fillText(`S3`,x1-10,oy+15);
+
+  ctx.fillStyle="#d9534f";
+  ctx.beginPath();ctx.arc(ox,y2,4,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(x2,oy,4,0,Math.PI*2);ctx.fill();
+  ctx.fillText(`S2`,ox-25,y2);
+  ctx.fillText(`S4`,x2-10,oy+15);
+}
+</script>
+</body>
+</html>
