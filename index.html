@@ -8,7 +8,7 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:sans-serif;background:#f5f7fa;padding:15px}
 .container{max-width:520px;margin:auto;background:#fff;border-radius:15px;padding:20px;box-shadow:0 4px 15px rgba(0,0,0,0.15)}
-h1{text-align:center;margin-bottom:20px}
+h1{text-align:center;margin-bottom:20px;font-size:24px}
 .input-group{margin-bottom:15px}
 label{display:block;margin-bottom:5px;font-weight:bold}
 input{width:100%;padding:12px;font-size:18px;border:1px solid #ccc;border-radius:8px}
@@ -19,6 +19,7 @@ button:active{transform:scale(0.98)}
 .mainR{margin-top:10px;font-size:24px;font-weight:bold;text-align:center;color:#d9534f}
 .eq{margin-top:15px;padding:12px;background:#fff;border-radius:8px;font-size:14px;line-height:1.6}
 #graph{width:100%;height:320px;border:1px solid #ccc;border-radius:10px;margin-top:20px;background:#fff}
+.note{font-size:12px;color:#666;margin-top:8px}
 </style>
 </head>
 <body>
@@ -31,6 +32,7 @@ button:active{transform:scale(0.98)}
 <div class="input-group"><label>R 手入力</label><input type="number" id="R" step="any"></div>
 <div class="input-group"><label>K</label><input type="number" id="K" step="any"></div>
 <div class="input-group"><label>T</label><input type="number" id="T" step="any"></div>
+<div class="note">Rを手入力に変更したことで、log依存を減らしグラフ描画可能範囲を拡大しました</div>
 
 <button onclick="calculate()">START</button>
 
@@ -61,7 +63,6 @@ function calculate(){
   let X2=Math.log(T1/T2);
   let r=-Math.log(K)/T;
 
-  // 指定式
   let S1 = S / (1 + X1);
   let S2 = S * (1 + X2);
   
@@ -76,25 +77,29 @@ function calculate(){
     <div class="mainP">P = ${Number.isFinite(P)?P.toFixed(6):"∞"}</div>
     <div class="mainR">r = ${r.toFixed(6)}</div>
     <div class="eq">
-    <b>【中間計算】</b><br>
-    O2 = B-S-O1 = ${O2.toFixed(6)}<br>
-    T1 = (B-S)/O1 = ${T1.toFixed(6)}<br>
-    T2 = (B-S)/O2 = ${T2.toFixed(6)}<br>
+    <b>【中間データ】</b><br>
+    O2 = ${O2.toFixed(6)} / T1 = ${T1.toFixed(6)} / T2 = ${T2.toFixed(6)}<br>
     X1 = log(T2/T1) = ${X1.toFixed(6)}<br>
     X2 = log(T1/T2) = ${X2.toFixed(6)}<br><br>
+    
     <b>【計算式】</b><br>
-    S1 = S / (1+X1) = ${S.toFixed(6)} / (1+${X1.toFixed(6)}) = ${Number.isFinite(S1)?S1.toFixed(6):"∞"}<br>
-    S2 = S * (1+X2) = ${S.toFixed(6)} * (1+${X2.toFixed(6)}) = ${Number.isFinite(S2)?S2.toFixed(6):"∞"}<br>
-    P = [O1 - R×S2×K] / [S1 - S2×K]<br>
-      = [${O1.toFixed(6)} - ${R.toFixed(6)}×${Number.isFinite(S2)?S2.toFixed(6):"∞"}×${K}] / [${Number.isFinite(S1)?S1.toFixed(6):"∞"} - ${Number.isFinite(S2)?S2.toFixed(6):"∞"}×${K}]<br>
-      = ${Number.isFinite(P)?P.toFixed(6):"∞"}<br><br>
+    S1 = S / (1+X1) = ${Number.isFinite(S1)?S1.toFixed(6):"∞"}<br>
+    S2 = S * (1+X2) = ${Number.isFinite(S2)?S2.toFixed(6):"∞"}<br>
+    P = [O1 - R×S2×K] / [S1 - S2×K] = ${Number.isFinite(P)?P.toFixed(6):"∞"}<br><br>
+    
     <b>【変換後データ】</b><br>
     1-P = ${Number.isFinite(oneMinusP)?oneMinusP.toFixed(6):"∞"}<br>
     S3 = S1×(1-P) = ${Number.isFinite(S3)?S3.toFixed(6):"∞"}<br>
     S4 = S2 / (1-P) = ${Number.isFinite(S4)?S4.toFixed(6):"∞"}
     </div>
   `;
-  drawGraph(S1,S2,S3,S4);
+  
+  // グラフ描画できる値かチェック
+  if([S1,S2,S3,S4].every(v=>Number.isFinite(v))){
+    drawGraph(S1,S2,S3,S4);
+  } else {
+    document.getElementById("graph").getContext("2d").clearRect(0,0,9999,9999);
+  }
 }
 
 function drawGraph(S1,S2,S3,S4){
@@ -112,7 +117,6 @@ function drawGraph(S1,S2,S3,S4){
   let ox=pad;
   let oy=canvas.height-pad;
 
-  // 軸
   ctx.strokeStyle="#ccc";
   ctx.lineWidth=1;
   ctx.beginPath();
@@ -124,7 +128,6 @@ function drawGraph(S1,S2,S3,S4){
   ctx.fillStyle="#666";
   ctx.fillText("0",ox-8,oy+12);
 
-  // (0,S1) → (S3,0) 青線
   let x1=ox+ S3*scaleX;
   let y1=oy - S1*scaleY;
   ctx.strokeStyle="#007bff";
@@ -134,7 +137,6 @@ function drawGraph(S1,S2,S3,S4){
   ctx.lineTo(x1, oy);
   ctx.stroke();
 
-  // (0,S2) → (S4,0) 赤線
   let x2=ox+ S4*scaleX;
   let y2=oy - S2*scaleY;
   ctx.strokeStyle="#d9534f";
@@ -143,7 +145,6 @@ function drawGraph(S1,S2,S3,S4){
   ctx.lineTo(x2, oy);
   ctx.stroke();
 
-  // 点とラベル
   ctx.fillStyle="#007bff";
   ctx.beginPath();ctx.arc(ox,y1,4,0,Math.PI*2);ctx.fill();
   ctx.beginPath();ctx.arc(x1,oy,4,0,Math.PI*2);ctx.fill();
